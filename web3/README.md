@@ -81,3 +81,19 @@ After setting the variable, you can run the deployment with the Sepolia network:
 ```shell
 npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
 ```
+
+# Console for interacting with the deployed contract
+
+You can use the Hardhat console to interact with the deployed contract. To start the console, run the following command:
+
+```shell
+npx hardhat console --network localhost
+```
+
+and then you can interact with the deployed contract, for example, to read the balance of an address:
+
+```javascript
+const { viem } = await network.connect();
+const derizer = await viem.getContractAt("Derizer", "0x5fbdb2315678afecb367f032d93f642f64180aa3");
+await derizer.read.balanceOf(["0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"]); // address from the Hardhat node accounts list Account #0
+```
