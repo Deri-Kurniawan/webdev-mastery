@@ -13,6 +13,10 @@
 # Hardhat compilation (v2) support directory
 /cache
 
+# Hardhat deployments
+ignition/deployments/*
+# !ignition/deployments/chain-11155111/ add exception testnet chain or production chain deployments to be tracked in git
+
 # Typechain output
 /types
 
