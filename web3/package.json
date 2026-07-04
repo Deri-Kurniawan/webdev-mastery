@@ -1,0 +1,27 @@
+{
+  "name": "web3",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "compile": "hardhat compile",
+    "build": "hardhat build",
+    "test": "hardhat test",
+    "test:sol": "hardhat test solidity",
+    "test:ts": "hardhat test nodejs",
+    "node": "hardhat node",
+    "node:save": "hardhat node --save-data",
+    "deploy:local": "hardhat ignition deploy ignition/modules/Counter.ts",
+    "deploy:localhost": "hardhat ignition deploy --network localhost ignition/modules/Counter.ts",
+    "deploy:sepolia": "hardhat ignition deploy --network sepolia ignition/modules/Counter.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^3.1.8",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.7",
+    "@types/node": "^22.8.5",
+    "forge-std": "foundry-rs/forge-std#v1.9.4",
+    "hardhat": "^3.9.1",
+    "typescript": "~6.0.3",
+    "viem": "^2.47.6"
+  }
+}

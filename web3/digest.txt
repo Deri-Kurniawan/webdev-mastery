@@ -1,0 +1,950 @@
+Directory structure:
+└── web3/
+    ├── README.md
+    ├── AGENTS.md
+    ├── CLAUDE.md
+    ├── hardhat.config.ts
+    ├── package.json
+    ├── tsconfig.json
+    ├── contracts/
+    │   ├── Counter.sol
+    │   └── Counter.t.sol
+    ├── ignition/
+    │   └── modules/
+    │       └── Counter.ts
+    ├── scripts/
+    │   └── send-op-tx.ts
+    ├── test/
+    │   └── Counter.ts
+    ├── .agents/
+    │   └── skills/
+    │       ├── hardhat/
+    │       │   └── SKILL.md
+    │       └── hardhat-toolbox-viem/
+    │           └── SKILL.md
+    └── .claude/
+        └── skills/
+            ├── hardhat/
+            │   └── SKILL.md
+            └── hardhat-toolbox-viem/
+                └── SKILL.md
+
+================================================
+FILE: README.md
+================================================
+# Sample Hardhat 3 Project (`node:test` and `viem`)
+
+This project showcases a Hardhat 3 project using the native Node.js test runner (`node:test`) and the `viem` library for Ethereum interactions.
+
+To learn more about Hardhat 3, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3](https://hardhat.org/hardhat3-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+
+## Project Overview
+
+This example project includes:
+
+- A simple Hardhat configuration file.
+- Foundry-compatible Solidity unit tests.
+- TypeScript integration tests using [`node:test`](nodejs.org/api/test.html), the new Node.js native test runner, and [`viem`](https://viem.sh/).
+- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+
+## Usage
+
+### Running Tests
+
+To run all the tests in the project, execute the following command:
+
+```shell
+npx hardhat test
+```
+
+You can also selectively run the Solidity or `node:test` tests:
+
+```shell
+npx hardhat test solidity
+npx hardhat test nodejs
+```
+
+### Make a deployment to Sepolia
+
+This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
+
+To run the deployment to a local chain:
+
+```shell
+npx hardhat ignition deploy ignition/modules/Counter.ts
+```
+
+To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
+
+You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
+
+To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
+
+```shell
+npx hardhat keystore set SEPOLIA_PRIVATE_KEY
+```
+
+After setting the variable, you can run the deployment with the Sepolia network:
+
+```shell
+npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
+```
+
+
+
+================================================
+FILE: AGENTS.md
+================================================
+# Hardhat + viem project
+
+## Project layout
+
+```
+contracts/        Solidity source files (*.sol) and unit tests (*.t.sol)
+test/             TypeScript integration tests and Solidity unit tests (*.sol)
+ignition/         Hardhat Ignition deployment modules
+scripts/          Standalone scripts run with `hardhat run`
+hardhat.config.ts
+```
+
+## Working in this project
+
+When writing or modifying tests, configuring `hardhat.config.ts`, or interacting with the network from TypeScript, invoke the **`hardhat`** skill. It covers Solidity and TypeScript testing, how to choose between them, `forge-std` cheatcodes, the `network.create()` API, `networkHelpers`, and the compile-then-typecheck workflow. The skill itself points to the matching `hardhat-toolbox-*` skill for toolbox-specific guidance (clients, contract interaction, assertions).
+
+## Docs
+
+- Hardhat 3 â€” https://hardhat.org/llms.txt
+- viem â€” https://viem.sh/llms.txt
+
+
+
+================================================
+FILE: CLAUDE.md
+================================================
+@AGENTS.md
+
+
+
+================================================
+FILE: hardhat.config.ts
+================================================
+import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
+import { configVariable, defineConfig } from "hardhat/config";
+
+export default defineConfig({
+  plugins: [hardhatToolboxViemPlugin],
+  solidity: {
+    profiles: {
+      default: {
+        version: "0.8.28",
+      },
+      production: {
+        version: "0.8.28",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
+      },
+    },
+  },
+  networks: {
+    hardhatMainnet: {
+      type: "edr-simulated",
+      chainType: "l1",
+    },
+    hardhatOp: {
+      type: "edr-simulated",
+      chainType: "op",
+    },
+    sepolia: {
+      type: "http",
+      chainType: "l1",
+      url: configVariable("SEPOLIA_RPC_URL"),
+      accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+    },
+  },
+});
+
+
+
+================================================
+FILE: package.json
+================================================
+{
+  "name": "web3",
+  "version": "1.0.0",
+  "type": "module",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^3.1.8",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.7",
+    "@types/node": "^22.8.5",
+    "forge-std": "foundry-rs/forge-std#v1.9.4",
+    "hardhat": "^3.9.1",
+    "typescript": "~6.0.3",
+    "viem": "^2.47.6"
+  }
+}
+
+
+================================================
+FILE: tsconfig.json
+================================================
+{
+  "compilerOptions": {
+    "lib": ["es2023"],
+    "module": "node20",
+    "target": "es2023",
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "types": ["node"],
+    "verbatimModuleSyntax": true
+  }
+}
+
+
+
+================================================
+FILE: contracts/Counter.sol
+================================================
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.28;
+
+contract Counter {
+  uint public x;
+
+  event Increment(uint by);
+
+  function inc() public {
+    x++;
+    emit Increment(1);
+  }
+
+  function incBy(uint by) public {
+    require(by > 0, "incBy: increment should be positive");
+    x += by;
+    emit Increment(by);
+  }
+}
+
+
+
+================================================
+FILE: contracts/Counter.t.sol
+================================================
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.28;
+
+import {Counter} from "./Counter.sol";
+import {Test} from "forge-std/Test.sol";
+
+contract CounterTest is Test {
+  Counter counter;
+
+  function setUp() public {
+    counter = new Counter();
+  }
+
+  function test_InitialValue() public view {
+    require(counter.x() == 0, "Initial value should be 0");
+  }
+
+  function testFuzz_Inc(uint8 x) public {
+    for (uint8 i = 0; i < x; i++) {
+      counter.inc();
+    }
+    require(counter.x() == x, "Value after calling inc x times should be x");
+  }
+
+  function test_IncByZero() public {
+    vm.expectRevert();
+    counter.incBy(0);
+  }
+}
+
+
+
+================================================
+FILE: ignition/modules/Counter.ts
+================================================
+import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+
+export default buildModule("CounterModule", (m) => {
+  const counter = m.contract("Counter");
+
+  m.call(counter, "incBy", [5n]);
+
+  return { counter };
+});
+
+
+
+================================================
+FILE: scripts/send-op-tx.ts
+================================================
+import { network } from "hardhat";
+
+const { viem } = await network.create({
+  network: "hardhatOp",
+  chainType: "op",
+});
+
+console.log("Sending transaction using the OP chain type");
+
+const publicClient = await viem.getPublicClient();
+const [senderClient] = await viem.getWalletClients();
+
+console.log("Sending 1 wei from", senderClient.account.address, "to itself");
+
+const l1Gas = await publicClient.estimateL1Gas({
+  account: senderClient.account.address,
+  to: senderClient.account.address,
+  value: 1n,
+});
+
+console.log("Estimated L1 gas:", l1Gas);
+
+console.log("Sending L2 transaction");
+const tx = await senderClient.sendTransaction({
+  to: senderClient.account.address,
+  value: 1n,
+});
+
+await publicClient.waitForTransactionReceipt({ hash: tx });
+
+console.log("Transaction sent successfully");
+
+
+
+================================================
+FILE: test/Counter.ts
+================================================
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import { network } from "hardhat";
+
+describe("Counter", async function () {
+  const { viem } = await network.create();
+  const publicClient = await viem.getPublicClient();
+
+  it("Should emit the Increment event when calling the inc() function", async function () {
+    const counter = await viem.deployContract("Counter");
+
+    await viem.assertions.emitWithArgs(
+      counter.write.inc(),
+      counter,
+      "Increment",
+      [1n],
+    );
+  });
+
+  it("The sum of the Increment events should match the current value", async function () {
+    const counter = await viem.deployContract("Counter");
+    const deploymentBlockNumber = await publicClient.getBlockNumber();
+
+    // run a series of increments
+    for (let i = 1n; i <= 10n; i++) {
+      await counter.write.incBy([i]);
+    }
+
+    const events = await publicClient.getContractEvents({
+      address: counter.address,
+      abi: counter.abi,
+      eventName: "Increment",
+      fromBlock: deploymentBlockNumber,
+      strict: true,
+    });
+
+    // check that the aggregated events match the current value
+    let total = 0n;
+    for (const event of events) {
+      total += event.args.by;
+    }
+
+    assert.equal(total, await counter.read.x());
+  });
+});
+
+
+
+================================================
+FILE: .agents/skills/hardhat/SKILL.md
+================================================
+---
+name: hardhat
+description: Use when working with Hardhat 3 projects â€” writing or modifying Solidity tests, TypeScript tests, or any code touching hardhat.config.ts, the `hardhat` import, or `network.create()`. Covers test-layer choice, forge-std cheatcodes, the network connection API, `networkHelpers`, and the compile-then-typecheck workflow. For toolbox-specific guidance (clients, contract calls, assertions), also load the matching `hardhat-toolbox-*` skill.
+metadata:
+  package: "hardhat"
+---
+
+# Hardhat 3
+
+This skill covers Hardhat 3 itself. The toolbox layer (clients, contract interaction, ecosystem-specific assertions) lives in companion skills â€” load whichever matches the project:
+
+- `@nomicfoundation/hardhat-toolbox-viem` â†’ also load the **`hardhat-toolbox-viem`** skill.
+- `@nomicfoundation/hardhat-toolbox-mocha-ethers` â†’ also load the **`hardhat-toolbox-mocha-ethers`** skill.
+
+## Test organization
+
+Hardhat 3 supports two distinct test layers:
+
+**Solidity tests** (`.t.sol` files in `contracts/`, or any `.sol` file in `test/`) are the default choice for unit tests on individual contracts. They run directly in the EVM, compile-check against the real ABI, and have access to cheatcodes for EVM state manipulation. Any public function whose name starts with `test` is executed as a test case.
+
+**TypeScript tests** (`.ts` files in `test/`) are the right choice when a test requires off-chain orchestration: multi-contract interactions, fixture reuse across a large suite, assertions about gas or ETH balances from the outside, or integration scenarios driven by external state.
+
+Reach for TypeScript only when Solidity isn't enough. Solidity tests cover all contract logic; TypeScript tests cover the end-to-end flow as a user or script would experience it.
+
+```bash
+hardhat test            # run all tests (Solidity + TypeScript)
+hardhat test solidity   # Solidity tests only
+```
+
+TypeScript tests are run either with `hardhat test nodejs` or with `hardhat test mocha`, depending on the toolbox or plugins being used: the viem-based toolbox uses `nodejs` while the ethers+mocha toolbox uses `mocha`.
+
+Pass `--coverage` to collect Solidity coverage while running tests. It works on the main `hardhat test` task as well as the `solidity` and TypeScript subtasks (`nodejs` / `mocha`), so you can scope coverage to a single test layer when needed.
+
+## Solidity tests
+
+Any contract that contains at least one `test*` function is treated as a test contract. Use `forge-std` (if present in `package.json`) for assertions and cheatcodes:
+
+```solidity
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.28;
+
+import { Test } from "forge-std/Test.sol";
+import { Counter } from "./Counter.sol";
+
+contract CounterTest is Test {
+  Counter counter;
+
+  function setUp() public {
+    counter = new Counter();
+  }
+
+  function test_InitialValueIsZero() public view {
+    assertEq(counter.x(), 0);
+  }
+
+  function test_IncByIncreasesByAmount() public {
+    counter.incBy(3);
+    assertEq(counter.x(), 3);
+  }
+
+  // Fuzz test: Hardhat runs this with many random inputs automatically
+  function testFuzz_Inc(uint8 x) public {
+    for (uint8 i = 0; i < x; i++) {
+      counter.inc();
+    }
+    require(counter.x() == x, "Value after calling inc x times should be x");
+  }
+}
+```
+
+The `vm` object (from `forge-std/Test.sol`) exposes cheatcodes for EVM state manipulation. Commonly used ones:
+
+| Cheatcode | Effect |
+| --- | --- |
+| `vm.prank(addr)` | Sets `msg.sender` for the next call only |
+| `vm.startPrank(addr)` / `vm.stopPrank()` | Sets `msg.sender` for a range of calls |
+| `vm.deal(addr, amount)` | Sets an account's ETH balance |
+| `vm.warp(timestamp)` | Sets `block.timestamp` |
+| `vm.roll(blockNum)` | Sets `block.number` |
+| `vm.expectRevert(...)` | Asserts the next call reverts |
+| `vm.expectEmit(...)` | Asserts the next call emits a specific event |
+
+## TypeScript tests and the network connection
+
+The central object in a TypeScript test is the **network connection**, created by `network.create()`. Toolbox plugins extend it with helper objects (e.g. `viem` or `ethers`, plus `networkHelpers`):
+
+```ts
+import { network } from "hardhat";
+
+const { networkHelpers } = await network.create();
+// Toolbox plugins also expose viem / ethers on this object;
+// see the matching hardhat-toolbox-* skill.
+```
+
+Hardhat 3 only works with ESM, so top-level `await` is available. Each call to `network.create()` produces an **isolated blockchain state**. A top-level network connection can be used when the same connection and its associated state can be shared across all tests in the file. For more isolation, you can create a new connection for each test suite or even each test case.
+
+### `networkHelpers`: EVM state manipulation
+
+`networkHelpers` wraps all of Hardhat's development-only helpers behind a typed, ergonomic API. Prefer it over raw JSON-RPC calls:
+
+```ts
+// Time
+await networkHelpers.time.increase(60); // mine a block 60 s ahead
+await networkHelpers.time.increaseTo(target); // mine to a specific timestamp
+const now = await networkHelpers.time.latest(); // latest block timestamp
+await networkHelpers.time.setNextBlockTimestamp(ts); // set without mining
+
+// Blocks
+await networkHelpers.mine(); // mine one block
+await networkHelpers.mine(5); // mine several blocks
+
+// Accounts
+await networkHelpers.impersonateAccount(addr);
+await networkHelpers.setBalance(addr, 10n ** 18n);
+
+// Block parameters
+await networkHelpers.setPrevRandao(value); // set block.prevrandao for the next block
+await networkHelpers.setNextBlockBaseFeePerGas(baseFee);
+
+// Fixtures
+//
+// loadFixture runs the setup once and snapshots the state. Subsequent calls
+// restore the snapshot instead of re-deploying, much faster for large suites.
+// The deploy step inside the fixture is toolbox-specific (e.g.
+// viem.deployContract, an ethers ContractFactory) â€” see the matching
+// hardhat-toolbox-* skill.
+async function deployCounter() {
+  // ... toolbox-specific deploy ...
+  return { counter };
+}
+
+const { counter } = await networkHelpers.loadFixture(deployCounter);
+// loadFixture requires a named function for caching to work (not an
+// arrow/anonymous function)
+
+// Snapshots (manual)
+const snap = await networkHelpers.takeSnapshot();
+// ... do things ...
+await snap.restore();
+```
+
+For plain TypeScript assertions (equality, arrays, types), use `node:assert/strict`. For ecosystem-specific assertions (reverts, events, balance changes), see the matching `hardhat-toolbox-*` skill.
+
+## Typechecking
+
+Generated contract types are derived from the compiled ABI (viem in the viem toolbox, TypeChain in the ethers toolbox), so recompile first, then typecheck. The example below uses npm; swap `npx` for whichever package manager runner this project uses:
+
+```bash
+npx hardhat build && npx tsc --noEmit
+```
+
+The compiler will catch wrong argument types, missing arguments, and invalid options (e.g. `value` on a non-payable function) before you even start the test runner. Make this a habit: it surfaces many mistakes faster than running the full test suite.
+
+
+
+================================================
+FILE: .agents/skills/hardhat-toolbox-viem/SKILL.md
+================================================
+---
+name: hardhat-toolbox-viem
+description: Use alongside the `hardhat` skill when the project depends on `@nomicfoundation/hardhat-toolbox-viem`. Covers the viem clients exposed on `network.create()`, contract interaction (`viem.deployContract`, `read`, `write`, `getContractAt`), and `viem.assertions` (revert / event / balance assertions).
+metadata:
+  package: "@nomicfoundation/hardhat-toolbox-viem"
+---
+
+# Hardhat toolbox: viem
+
+This skill builds on the core **`hardhat`** skill. Load that first for test organization, the `network.create()` shape, `networkHelpers`, fixtures, and the typechecking workflow. Everything below hangs off the connection returned by `network.create()`:
+
+```ts
+import { network } from "hardhat";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+
+describe("Counter", async function () {
+  const { viem, networkHelpers } = await network.create();
+  // ...
+});
+```
+
+## `viem`: clients and contract interaction
+
+```ts
+// Clients
+const publicClient = await viem.getPublicClient();
+const [owner, alice, bob] = await viem.getWalletClients(); // default accounts
+const testClient = await viem.getTestClient(); // dev-only operations
+
+// Deploy a contract, returns a fully typed instance
+const counter = await viem.deployContract("Counter");
+
+// Read state (return type inferred from ABI)
+const value = await counter.read.x();
+
+// Write transactions. Args and options are type-checked against the ABI at
+// compile time; passing wrong types, wrong argument counts, or `value` on a
+// non-payable function is a TypeScript error
+await counter.write.inc();
+await counter.write.inc({ account: alice.account }); // different sender
+await counter.write.incBy([3n]); // with args
+await counter.write.deposit({ value: 10n ** 18n }); // no parameters and payable
+
+// Attach to an already-deployed contract
+const existing = await viem.getContractAt("Counter", "0xabc...");
+```
+
+Avoid using `walletClient.writeContract` to interact with contracts â€” it has no ABI typing, so wrong args slip through. Prefer the typed instance returned by `viem.deployContract` or `viem.getContractAt`.
+
+Inside a `loadFixture` setup function (see the `hardhat` skill for the surrounding pattern), `viem.deployContract` is the canonical deploy step:
+
+```ts
+async function deployCounter() {
+  const counter = await viem.deployContract("Counter");
+  return { counter };
+}
+
+const { counter } = await networkHelpers.loadFixture(deployCounter);
+```
+
+## `viem.assertions`: Ethereum-specific assertions
+
+Use `viem.assertions` for contract-specific checks. Pass the **unawaited** transaction promise as the first argument:
+
+```ts
+// Reverts
+await viem.assertions.revert(counter.write.inc({ account: banned }));
+await viem.assertions.revertWith(
+  counter.write.inc({ account: banned }),
+  "Not authorized",
+);
+await viem.assertions.revertWithCustomError(
+  counter.write.inc({ account: banned }),
+  counter,
+  "Unauthorized",
+);
+await viem.assertions.revertWithCustomErrorWithArgs(
+  counter.write.inc({ account: banned }),
+  counter,
+  "Unauthorized",
+  [banned],
+);
+
+// Events
+await viem.assertions.emit(counter.write.inc(), counter, "Increment");
+await viem.assertions.emitWithArgs(counter.write.inc(), counter, "Increment", [
+  1n,
+]);
+
+// ETH balance changes (positive = received, negative = spent, before gas)
+await viem.assertions.balancesHaveChanged(game.write.claim(), {
+  [winner]: PRIZE,
+  [loser]: -STAKE,
+});
+```
+
+The `*WithArgs` matchers (`revertWithCustomErrorWithArgs` and `emitWithArgs`) accept a `(value) => boolean` predicate at any arg position, alongside concrete values. The plugin also ships an `anyValue` helper for positions you don't care about:
+
+```ts
+import { anyValue } from "@nomicfoundation/hardhat-toolbox-viem/predicates";
+
+// Inline predicate at any arg position. Useful for ranges or computed conditions.
+await viem.assertions.revertWithCustomErrorWithArgs(
+  contract.write.failing(),
+  contract,
+  "BadValue",
+  [(n: bigint) => n > 100n, "another error arg"],
+);
+await viem.assertions.emitWithArgs(
+  counter.write.incBy([3n]),
+  counter,
+  "Increment",
+  [(by: bigint) => by >= 1n],
+);
+
+// `anyValue` matches anything â€” handy for fields you don't care about.
+await viem.assertions.revertWithCustomErrorWithArgs(
+  contract.write.failing(),
+  contract,
+  "BadValue",
+  [anyValue, "another error arg"],
+);
+```
+
+For plain TypeScript assertions (equality, arrays, types), use `node:assert/strict`.
+
+
+
+================================================
+FILE: .claude/skills/hardhat/SKILL.md
+================================================
+---
+name: hardhat
+description: Use when working with Hardhat 3 projects â€” writing or modifying Solidity tests, TypeScript tests, or any code touching hardhat.config.ts, the `hardhat` import, or `network.create()`. Covers test-layer choice, forge-std cheatcodes, the network connection API, `networkHelpers`, and the compile-then-typecheck workflow. For toolbox-specific guidance (clients, contract calls, assertions), also load the matching `hardhat-toolbox-*` skill.
+metadata:
+  package: "hardhat"
+---
+
+# Hardhat 3
+
+This skill covers Hardhat 3 itself. The toolbox layer (clients, contract interaction, ecosystem-specific assertions) lives in companion skills â€” load whichever matches the project:
+
+- `@nomicfoundation/hardhat-toolbox-viem` â†’ also load the **`hardhat-toolbox-viem`** skill.
+- `@nomicfoundation/hardhat-toolbox-mocha-ethers` â†’ also load the **`hardhat-toolbox-mocha-ethers`** skill.
+
+## Test organization
+
+Hardhat 3 supports two distinct test layers:
+
+**Solidity tests** (`.t.sol` files in `contracts/`, or any `.sol` file in `test/`) are the default choice for unit tests on individual contracts. They run directly in the EVM, compile-check against the real ABI, and have access to cheatcodes for EVM state manipulation. Any public function whose name starts with `test` is executed as a test case.
+
+**TypeScript tests** (`.ts` files in `test/`) are the right choice when a test requires off-chain orchestration: multi-contract interactions, fixture reuse across a large suite, assertions about gas or ETH balances from the outside, or integration scenarios driven by external state.
+
+Reach for TypeScript only when Solidity isn't enough. Solidity tests cover all contract logic; TypeScript tests cover the end-to-end flow as a user or script would experience it.
+
+```bash
+hardhat test            # run all tests (Solidity + TypeScript)
+hardhat test solidity   # Solidity tests only
+```
+
+TypeScript tests are run either with `hardhat test nodejs` or with `hardhat test mocha`, depending on the toolbox or plugins being used: the viem-based toolbox uses `nodejs` while the ethers+mocha toolbox uses `mocha`.
+
+Pass `--coverage` to collect Solidity coverage while running tests. It works on the main `hardhat test` task as well as the `solidity` and TypeScript subtasks (`nodejs` / `mocha`), so you can scope coverage to a single test layer when needed.
+
+## Solidity tests
+
+Any contract that contains at least one `test*` function is treated as a test contract. Use `forge-std` (if present in `package.json`) for assertions and cheatcodes:
+
+```solidity
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.28;
+
+import { Test } from "forge-std/Test.sol";
+import { Counter } from "./Counter.sol";
+
+contract CounterTest is Test {
+  Counter counter;
+
+  function setUp() public {
+    counter = new Counter();
+  }
+
+  function test_InitialValueIsZero() public view {
+    assertEq(counter.x(), 0);
+  }
+
+  function test_IncByIncreasesByAmount() public {
+    counter.incBy(3);
+    assertEq(counter.x(), 3);
+  }
+
+  // Fuzz test: Hardhat runs this with many random inputs automatically
+  function testFuzz_Inc(uint8 x) public {
+    for (uint8 i = 0; i < x; i++) {
+      counter.inc();
+    }
+    require(counter.x() == x, "Value after calling inc x times should be x");
+  }
+}
+```
+
+The `vm` object (from `forge-std/Test.sol`) exposes cheatcodes for EVM state manipulation. Commonly used ones:
+
+| Cheatcode | Effect |
+| --- | --- |
+| `vm.prank(addr)` | Sets `msg.sender` for the next call only |
+| `vm.startPrank(addr)` / `vm.stopPrank()` | Sets `msg.sender` for a range of calls |
+| `vm.deal(addr, amount)` | Sets an account's ETH balance |
+| `vm.warp(timestamp)` | Sets `block.timestamp` |
+| `vm.roll(blockNum)` | Sets `block.number` |
+| `vm.expectRevert(...)` | Asserts the next call reverts |
+| `vm.expectEmit(...)` | Asserts the next call emits a specific event |
+
+## TypeScript tests and the network connection
+
+The central object in a TypeScript test is the **network connection**, created by `network.create()`. Toolbox plugins extend it with helper objects (e.g. `viem` or `ethers`, plus `networkHelpers`):
+
+```ts
+import { network } from "hardhat";
+
+const { networkHelpers } = await network.create();
+// Toolbox plugins also expose viem / ethers on this object;
+// see the matching hardhat-toolbox-* skill.
+```
+
+Hardhat 3 only works with ESM, so top-level `await` is available. Each call to `network.create()` produces an **isolated blockchain state**. A top-level network connection can be used when the same connection and its associated state can be shared across all tests in the file. For more isolation, you can create a new connection for each test suite or even each test case.
+
+### `networkHelpers`: EVM state manipulation
+
+`networkHelpers` wraps all of Hardhat's development-only helpers behind a typed, ergonomic API. Prefer it over raw JSON-RPC calls:
+
+```ts
+// Time
+await networkHelpers.time.increase(60); // mine a block 60 s ahead
+await networkHelpers.time.increaseTo(target); // mine to a specific timestamp
+const now = await networkHelpers.time.latest(); // latest block timestamp
+await networkHelpers.time.setNextBlockTimestamp(ts); // set without mining
+
+// Blocks
+await networkHelpers.mine(); // mine one block
+await networkHelpers.mine(5); // mine several blocks
+
+// Accounts
+await networkHelpers.impersonateAccount(addr);
+await networkHelpers.setBalance(addr, 10n ** 18n);
+
+// Block parameters
+await networkHelpers.setPrevRandao(value); // set block.prevrandao for the next block
+await networkHelpers.setNextBlockBaseFeePerGas(baseFee);
+
+// Fixtures
+//
+// loadFixture runs the setup once and snapshots the state. Subsequent calls
+// restore the snapshot instead of re-deploying, much faster for large suites.
+// The deploy step inside the fixture is toolbox-specific (e.g.
+// viem.deployContract, an ethers ContractFactory) â€” see the matching
+// hardhat-toolbox-* skill.
+async function deployCounter() {
+  // ... toolbox-specific deploy ...
+  return { counter };
+}
+
+const { counter } = await networkHelpers.loadFixture(deployCounter);
+// loadFixture requires a named function for caching to work (not an
+// arrow/anonymous function)
+
+// Snapshots (manual)
+const snap = await networkHelpers.takeSnapshot();
+// ... do things ...
+await snap.restore();
+```
+
+For plain TypeScript assertions (equality, arrays, types), use `node:assert/strict`. For ecosystem-specific assertions (reverts, events, balance changes), see the matching `hardhat-toolbox-*` skill.
+
+## Typechecking
+
+Generated contract types are derived from the compiled ABI (viem in the viem toolbox, TypeChain in the ethers toolbox), so recompile first, then typecheck. The example below uses npm; swap `npx` for whichever package manager runner this project uses:
+
+```bash
+npx hardhat build && npx tsc --noEmit
+```
+
+The compiler will catch wrong argument types, missing arguments, and invalid options (e.g. `value` on a non-payable function) before you even start the test runner. Make this a habit: it surfaces many mistakes faster than running the full test suite.
+
+
+
+================================================
+FILE: .claude/skills/hardhat-toolbox-viem/SKILL.md
+================================================
+---
+name: hardhat-toolbox-viem
+description: Use alongside the `hardhat` skill when the project depends on `@nomicfoundation/hardhat-toolbox-viem`. Covers the viem clients exposed on `network.create()`, contract interaction (`viem.deployContract`, `read`, `write`, `getContractAt`), and `viem.assertions` (revert / event / balance assertions).
+metadata:
+  package: "@nomicfoundation/hardhat-toolbox-viem"
+---
+
+# Hardhat toolbox: viem
+
+This skill builds on the core **`hardhat`** skill. Load that first for test organization, the `network.create()` shape, `networkHelpers`, fixtures, and the typechecking workflow. Everything below hangs off the connection returned by `network.create()`:
+
+```ts
+import { network } from "hardhat";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+
+describe("Counter", async function () {
+  const { viem, networkHelpers } = await network.create();
+  // ...
+});
+```
+
+## `viem`: clients and contract interaction
+
+```ts
+// Clients
+const publicClient = await viem.getPublicClient();
+const [owner, alice, bob] = await viem.getWalletClients(); // default accounts
+const testClient = await viem.getTestClient(); // dev-only operations
+
+// Deploy a contract, returns a fully typed instance
+const counter = await viem.deployContract("Counter");
+
+// Read state (return type inferred from ABI)
+const value = await counter.read.x();
+
+// Write transactions. Args and options are type-checked against the ABI at
+// compile time; passing wrong types, wrong argument counts, or `value` on a
+// non-payable function is a TypeScript error
+await counter.write.inc();
+await counter.write.inc({ account: alice.account }); // different sender
+await counter.write.incBy([3n]); // with args
+await counter.write.deposit({ value: 10n ** 18n }); // no parameters and payable
+
+// Attach to an already-deployed contract
+const existing = await viem.getContractAt("Counter", "0xabc...");
+```
+
+Avoid using `walletClient.writeContract` to interact with contracts â€” it has no ABI typing, so wrong args slip through. Prefer the typed instance returned by `viem.deployContract` or `viem.getContractAt`.
+
+Inside a `loadFixture` setup function (see the `hardhat` skill for the surrounding pattern), `viem.deployContract` is the canonical deploy step:
+
+```ts
+async function deployCounter() {
+  const counter = await viem.deployContract("Counter");
+  return { counter };
+}
+
+const { counter } = await networkHelpers.loadFixture(deployCounter);
+```
+
+## `viem.assertions`: Ethereum-specific assertions
+
+Use `viem.assertions` for contract-specific checks. Pass the **unawaited** transaction promise as the first argument:
+
+```ts
+// Reverts
+await viem.assertions.revert(counter.write.inc({ account: banned }));
+await viem.assertions.revertWith(
+  counter.write.inc({ account: banned }),
+  "Not authorized",
+);
+await viem.assertions.revertWithCustomError(
+  counter.write.inc({ account: banned }),
+  counter,
+  "Unauthorized",
+);
+await viem.assertions.revertWithCustomErrorWithArgs(
+  counter.write.inc({ account: banned }),
+  counter,
+  "Unauthorized",
+  [banned],
+);
+
+// Events
+await viem.assertions.emit(counter.write.inc(), counter, "Increment");
+await viem.assertions.emitWithArgs(counter.write.inc(), counter, "Increment", [
+  1n,
+]);
+
+// ETH balance changes (positive = received, negative = spent, before gas)
+await viem.assertions.balancesHaveChanged(game.write.claim(), {
+  [winner]: PRIZE,
+  [loser]: -STAKE,
+});
+```
+
+The `*WithArgs` matchers (`revertWithCustomErrorWithArgs` and `emitWithArgs`) accept a `(value) => boolean` predicate at any arg position, alongside concrete values. The plugin also ships an `anyValue` helper for positions you don't care about:
+
+```ts
+import { anyValue } from "@nomicfoundation/hardhat-toolbox-viem/predicates";
+
+// Inline predicate at any arg position. Useful for ranges or computed conditions.
+await viem.assertions.revertWithCustomErrorWithArgs(
+  contract.write.failing(),
+  contract,
+  "BadValue",
+  [(n: bigint) => n > 100n, "another error arg"],
+);
+await viem.assertions.emitWithArgs(
+  counter.write.incBy([3n]),
+  counter,
+  "Increment",
+  [(by: bigint) => by >= 1n],
+);
+
+// `anyValue` matches anything â€” handy for fields you don't care about.
+await viem.assertions.revertWithCustomErrorWithArgs(
+  contract.write.failing(),
+  contract,
+  "BadValue",
+  [anyValue, "another error arg"],
+);
+```
+
+For plain TypeScript assertions (equality, arrays, types), use `node:assert/strict`.
+
+
